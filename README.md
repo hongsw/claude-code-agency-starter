@@ -1,145 +1,84 @@
 # 🤖 Claude Code Agency Starter Kit
 
-**AI 에이전시 이중 기록 체계** — Claude Code가 작업하고, 고객은 Notion에서 확인합니다.
-
-> Baryon Labs의 AI 에이전시 운영 모델을 위한 Claude Code 스타터 파일입니다.
-
----
-
-## 📌 이게 뭔가요?
-
-기존에 Claude Code는 PR 기반으로 작업을 완료합니다.
-하지만 **비개발자 고객은 PR을 읽지 못합니다.**
-
-이 스타터 킷은 Claude Code가 작업할 때 **동시에 Notion에도 고객용 기록을 남기도록** 설계되었습니다.
+Claude Code가 Notion TODO를 자동으로 처리하는 **자율 Loop 시스템**.
+작업마다 GitHub PR (개발자용) + Notion 기록 (고객용)을 동시에 남긴다.
 
 ```
-고객 요청 (Notion 코멘트)
-       ↓
-팀원이 TODO 생성 (Notion DB)
-       ↓
-Claude Code Loop 실행
-  ├─ 코드 작성/수정
-  ├─ Git commit + PR 생성 (개발 기록)
-  └─ Notion TODO 상태 업데이트 + 작업 요약 기록 (고객 기록)
-       ↓
-고객이 Notion에서 확인 + 코멘트로 피드백
-       ↓
-피드백 반영 → Loop 재실행
+Notion TODO (📋 대기)  →  Claude Code가 자동 처리  →  PR + Notion 동시 기록
+    ↑                                                        ↓
+고객 피드백 (Notion 코멘트)  ←────────────────  고객이 Notion에서 확인
 ```
 
 ---
 
-## 🚀 빠른 시작
-
-### 1. 환경변수 설정
+## 🚀 시작하기
 
 ```bash
+# 1. 프로젝트에 복사
+cp -r claude-code-agency-starter/{CLAUDE.md,.claude,.github,.env.example,.gitignore,scripts} your-project/
+
+# 2. 환경변수 설정
+cd your-project
 cp .env.example .env
-# .env 파일을 열어서 실제 값을 입력
-```
+# .env 편집: NOTION_API_KEY, NOTION_TODO_DB_ID 입력
 
-필요한 값:
-- **NOTION_API_KEY**: [Notion Integration 생성](https://www.notion.so/my-integrations)에서 발급
-- **NOTION_TODO_DB_ID**: Notion TODO 보드 DB의 ID
-- **NOTION_PROJECT_PAGE_ID**: 프로젝트 메인 페이지 ID
-
-### 2. Notion Integration 연결
-
-1. https://www.notion.so/my-integrations 에서 새 Integration 생성
-2. 프로젝트 Notion 페이지에서 "Share" → Integration 추가
-3. TODO 보드 DB에서도 동일하게 Integration 추가
-
-### 3. 설정 확인
-
-```bash
+# 3. 설정 확인
+chmod +x scripts/*.sh
 ./scripts/setup.sh
 ```
 
-### 4. Claude Code 실행
+---
 
+## 🏃 Loop 실행 (3가지 방법)
+
+### 방법 1: 쉘 스크립트 (권장)
+```bash
+./scripts/run-loop.sh              # Loop 실행
+./scripts/run-loop.sh --dry-run    # TODO 확인만
+```
+
+### 방법 2: Claude Code 슬래시 커맨드
 ```bash
 claude
-# 그리고:
-/loop-start
+> /loop-start    # 즉시 Loop 시작
 ```
+
+### 방법 3: 직접 실행
+```bash
+claude --loop "CLAUDE.md를 읽고 LOOP 프로토콜을 실행하라."
+```
+
+### 자동화 (crontab / GitHub Actions)
+```bash
+# 평일 9시/14시/18시 자동 실행
+0 9,14,18 * * 1-5 /path/to/project/scripts/run-loop.sh
+```
+
+`.github/workflows/claude-loop.yml`로 GitHub Actions 자동 트리거도 가능.
 
 ---
 
 ## 📁 파일 구조
 
-```
-project-root/
-├── CLAUDE.md                         # Claude Code 핵심 지침서
-├── .claude/
-│   ├── settings.json                 # MCP 서버 설정 (Notion)
-│   └── commands/
-│       ├── loop-start.md             # /loop-start — TODO 자동 처리
-│       ├── sync-notion.md            # /sync-notion — 수동 동기화
-│       ├── weekly-report.md          # /weekly-report — 주간 리포트
-│       ├── new-todo.md               # /new-todo — 새 TODO 생성
-│       └── check-feedback.md         # /check-feedback — 고객 피드백 확인
-├── .env.example                      # 환경변수 템플릿
-├── .gitignore                        # Git 제외 파일
-├── scripts/
-│   └── setup.sh                      # 초기 설정 스크립트
-└── README.md                         # 이 파일
-```
+| 파일 | 역할 |
+|------|------|
+| `CLAUDE.md` | **핵심** — Loop 프로토콜, 이중 기록 규칙 |
+| `.claude/settings.json` | Notion MCP 서버 설정 |
+| `.claude/commands/loop-start.md` | `/loop-start` 슬래시 커맨드 |
+| `.claude/commands/sync-notion.md` | `/sync-notion` 수동 동기화 |
+| `.claude/commands/weekly-report.md` | `/weekly-report` 주간 리포트 |
+| `.claude/commands/new-todo.md` | `/new-todo` TODO 생성 |
+| `.claude/commands/check-feedback.md` | `/check-feedback` 피드백 확인 |
+| `scripts/run-loop.sh` | Loop 실행 스크립트 |
+| `scripts/setup.sh` | 초기 설정 |
+| `.github/workflows/claude-loop.yml` | GitHub Actions |
 
 ---
 
-## 🎮 사용 가능한 커맨드
+## 필요한 Notion DB 속성
 
-| 커맨드 | 설명 | 언제 사용? |
-|--------|------|-----------|
-| `/loop-start` | TODO 자동 처리 루프 시작 | 대기중인 작업을 일괄 처리할 때 |
-| `/sync-notion` | 현재 작업을 Notion에 동기화 | 수동 작업 후 Notion 기록할 때 |
-| `/weekly-report` | 주간 리포트 생성 | 매주 금요일 |
-| `/new-todo` | 새 TODO 생성 | 고객 요청이나 새 작업 등록 시 |
-| `/check-feedback` | 고객 피드백 확인 | 고객이 Notion에 코멘트 남겼을 때 |
+Task (title), Status (select), Priority (select), 담당 (select), Phase (select), 고객 확인 (checkbox), PR 링크 (url), 작업 요약 (rich_text), 시작일 (date), 완료일 (date)
 
 ---
-
-## 🔄 이중 기록 체계
-
-| | GitHub PR | Notion TODO |
-|---|---|---|
-| **독자** | 개발자 | 고객/비개발자 |
-| **언어** | 기술 용어 OK | 쉬운 한국어만 |
-| **내용** | 코드 diff, 테스트 결과 | "버튼 색 바꿨습니다" |
-| **목적** | 코드 리뷰 | 진행 확인, 피드백 |
-
----
-
-## 📋 Notion TODO DB 스키마
-
-프로젝트에 필요한 Notion DB 구조:
-
-| 속성 | 타입 | 설명 |
-|------|------|------|
-| Task | Title | 작업명 (한국어) |
-| Status | Select | 📋 대기 / 🔄 진행중 / 👀 리뷰중 / ✅ 완료 / ⏸️ 보류 |
-| Priority | Select | 🔴 긴급 / 🟠 높음 / 🟡 보통 / 🟢 낮음 |
-| 담당 | Select | 팀원 / Claude Code / 고객 |
-| Phase | Select | 기획 / 디자인 / 개발 / QA |
-| 고객 확인 | Checkbox | 고객 승인 여부 |
-| PR 링크 | URL | GitHub PR |
-| 작업 요약 | Rich Text | 비개발자용 설명 |
-| 시작일 | Date | 작업 시작 |
-| 완료일 | Date | 작업 완료 |
-
----
-
-## 🏢 Baryon Labs
-
-이 스타터 킷은 [Baryon Labs](https://miri.dev)의 AI 에이전시 운영 모델의 일부입니다.
-
-- **agentiXwork**: [agentixwork.com](https://agentixwork.com)
-- **GitHub**: [github.com/baryonlabs](https://github.com/baryonlabs)
-- **VS Code Extension**: "Baryon Agents" (Visual Studio Marketplace)
-
----
-
-## 📄 License
 
 MIT License — Baryon Labs 2025
