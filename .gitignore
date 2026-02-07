@@ -21,3 +21,7 @@ build/
 .next/
 .nuxt/
 .output/
+
+# Claude Code session state
+trees/
+.claude/settings.local.json
